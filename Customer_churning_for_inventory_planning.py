@@ -1,13 +1,4 @@
-# ============================================================
-#  INVENTORY PLANNING FOR CUSTOMER CHURN DATASET
-#  Production-Grade Forecasting + Logistic Regression
-#  Google Colab Ready — Run cells top to bottom
-# ============================================================
 
-# ─────────────────────────────────────────────
-# CELL 1 — Install & Import Libraries
-# ─────────────────────────────────────────────
-# Run this cell first in Google Colab
 
 # https://colab.research.google.com/drive/1U4boan-n-n9UGu_KF_jNQMRuNTokLpni
 
@@ -30,45 +21,32 @@ from imblearn.over_sampling import SMOTE
 
 print("✅ All libraries loaded successfully.")
 
-# ─────────────────────────────────────────────
-# CELL 2 — Load Dataset
-# ─────────────────────────────────────────────
-# Upload your E_comm.xlsx to Colab or mount Google Drive
-# Option A: Upload manually
+
 from google.colab import files
 uploaded = files.upload()   # select E_comm.xlsx from your computer
 import io
 filename = list(uploaded.keys())[0]
 df_raw = pd.read_excel(io.BytesIO(uploaded[filename]))
 
-# Option B (comment Option A, uncomment below if file is in Google Drive):
-# from google.colab import drive
-# drive.mount('/content/drive')
-# df_raw = pd.read_excel('/content/drive/MyDrive/E_comm.xlsx')
+
 
 print(f"✅ Dataset loaded: {df_raw.shape[0]} rows × {df_raw.shape[1]} columns")
 print(df_raw.head())
 
-# ─────────────────────────────────────────────
-# CELL 3 — Data Cleaning & Preprocessing
-# ─────────────────────────────────────────────
 
-df = df_raw.copy()
-
-# Standardise inconsistent category labels
 df['PreferredPaymentMode'] = df['PreferredPaymentMode'].replace(
     {'CC': 'Credit Card', 'Cash on Delivery': 'COD'}
 )
 df['PreferedOrderCat'] = df['PreferedOrderCat'].replace({'Mobile': 'Mobile Phone'})
 
-# Fill numeric nulls with median (production-safe, no data leakage)
+
 numeric_cols = ['Tenure', 'WarehouseToHome', 'HourSpendOnApp',
                 'OrderAmountHikeFromlastYear', 'CouponUsed',
                 'OrderCount', 'DaySinceLastOrder']
 for col in numeric_cols:
     df[col].fillna(df[col].median(), inplace=True)
 
-# Encode categorical columns
+
 cat_cols = ['PreferredLoginDevice', 'PreferredPaymentMode',
             'Gender', 'PreferedOrderCat', 'MaritalStatus']
 le = LabelEncoder()
@@ -79,9 +57,7 @@ print("✅ Preprocessing complete.")
 print(f"   Missing values remaining: {df.isnull().sum().sum()}")
 print(f"   Churn rate: {df['Churn'].mean()*100:.1f}%")
 
-# ─────────────────────────────────────────────
-# CELL 4 — Exploratory Data Analysis (EDA)
-# ─────────────────────────────────────────────
+───────────────────────────────────────
 
 fig, axes = plt.subplots(2, 3, figsize=(18, 10))
 fig.suptitle("E-Commerce Customer Churn — EDA Overview",
@@ -89,7 +65,7 @@ fig.suptitle("E-Commerce Customer Churn — EDA Overview",
 
 palette = {0: '#2E75B6', 1: '#ED7D31'}
 
-# 4.1 Churn distribution
+
 churn_counts = df['Churn'].value_counts()
 axes[0, 0].pie(
     churn_counts, labels=['Retained', 'Churned'],
@@ -111,7 +87,7 @@ axes[0, 1].set_title('Tenure Distribution by Churn', fontweight='bold')
 axes[0, 1].set_xlabel('Tenure (months)')
 axes[0, 1].legend()
 
-# 4.3 Satisfaction Score vs Churn
+
 sat_churn = df_raw.groupby('SatisfactionScore')['Churn'].mean() * 100
 axes[0, 2].bar(sat_churn.index, sat_churn.values,
                color='#2E75B6', edgecolor='white', width=0.6)
@@ -121,7 +97,7 @@ axes[0, 2].set_ylabel('Churn Rate (%)')
 for i, v in enumerate(sat_churn.values):
     axes[0, 2].text(sat_churn.index[i], v + 0.3, f'{v:.1f}%', ha='center', fontsize=9)
 
-# 4.4 Complain vs Churn
+
 comp = df_raw.groupby('Complain')['Churn'].mean() * 100
 axes[1, 0].bar(['No Complaint', 'Complained'], comp.values,
                color=['#70AD47', '#C00000'], edgecolor='white', width=0.5)
@@ -130,7 +106,7 @@ axes[1, 0].set_ylabel('Churn Rate (%)')
 for i, v in enumerate(comp.values):
     axes[1, 0].text(i, v + 0.3, f'{v:.1f}%', ha='center', fontsize=11, fontweight='bold')
 
-# 4.5 Order Count vs Churn
+
 axes[1, 1].boxplot(
     [df_raw[df_raw['Churn']==0]['OrderCount'].dropna(),
      df_raw[df_raw['Churn']==1]['OrderCount'].dropna()],
@@ -142,7 +118,7 @@ axes[1, 1].boxplot(
 axes[1, 1].set_title('Order Count by Churn Status', fontweight='bold')
 axes[1, 1].set_ylabel('Order Count')
 
-# 4.6 Cashback Amount vs Churn
+
 axes[1, 2].hist(
     [df_raw[df_raw['Churn']==0]['CashbackAmount'],
      df_raw[df_raw['Churn']==1]['CashbackAmount']],
@@ -158,9 +134,7 @@ plt.savefig('eda_overview.png', dpi=150, bbox_inches='tight')
 plt.show()
 print("✅ EDA plots saved.")
 
-# ─────────────────────────────────────────────
-# CELL 5 — Feature Correlation Heatmap
-# ─────────────────────────────────────────────
+──────────────────
 
 plt.figure(figsize=(14, 10))
 corr_cols = ['Churn', 'Tenure', 'SatisfactionScore', 'Complain',
@@ -178,13 +152,7 @@ plt.savefig('correlation_heatmap.png', dpi=150, bbox_inches='tight')
 plt.show()
 print("✅ Correlation heatmap saved.")
 
-# ─────────────────────────────────────────────
-# CELL 6 — Build Churn Probability Time Series
-#          (Simulate monthly inventory signal)
-# ─────────────────────────────────────────────
-# In production, Tenure acts as a proxy for "months active".
-# We aggregate churn rate per Tenure month to create a time series
-# that drives demand/inventory signals.
+
 
 df_ts = df_raw.copy()
 df_ts['Tenure'].fillna(df_ts['Tenure'].median(), inplace=True)
@@ -207,14 +175,11 @@ monthly['demand_signal'].fillna(monthly['demand_signal'].median(), inplace=True)
 print("✅ Monthly time series created.")
 print(monthly.head(10).to_string(index=False))
 
-# ─────────────────────────────────────────────
-# CELL 7 — Moving Average Forecast
-# ─────────────────────────────────────────────
 
 series = monthly['demand_signal'].values
 months = monthly['Tenure'].values
 
-# Moving Average windows
+
 window_3  = pd.Series(series).rolling(window=3,  min_periods=1).mean().values
 window_5  = pd.Series(series).rolling(window=5,  min_periods=1).mean().values
 window_7  = pd.Series(series).rolling(window=7,  min_periods=1).mean().values
@@ -242,9 +207,7 @@ best_ma_window = min([(ma3_rmse, 3, window_3), (ma5_rmse, 5, window_5),
                       (ma7_rmse, 7, window_7)], key=lambda x: x[0])
 print(f"   ✅ Best MA window: MA({best_ma_window[1]}) with RMSE={best_ma_window[0]:.4f}")
 
-# ─────────────────────────────────────────────
-# CELL 8 — Simple Exponential Smoothing (SES)
-# ─────────────────────────────────────────────
+──────────────────────────────────────────
 
 alphas = [0.2, 0.4, 0.6, 0.8]
 ses_results = {}
@@ -260,7 +223,7 @@ for alpha in alphas:
         'mape': mape(series, fitted_vals)
     }
 
-# Also run with auto-optimized alpha
+
 model_opt = SimpleExpSmoothing(series, initialization_method='estimated')
 fit_opt   = model_opt.fit(optimized=True)
 opt_alpha = fit_opt.params['smoothing_level']
@@ -280,9 +243,6 @@ for a, res in ses_results.items():
 best_ses = min(ses_results.items(), key=lambda x: x[1]['rmse'])
 print(f"   ✅ Best SES: alpha={best_ses[0]} with RMSE={best_ses[1]['rmse']:.4f}")
 
-# ─────────────────────────────────────────────
-# CELL 9 — Compare MA vs SES (Main Chart)
-# ─────────────────────────────────────────────
 
 best_ses_fitted = best_ses[1]['fitted']
 best_ses_rmse   = best_ses[1]['rmse']
@@ -308,7 +268,7 @@ ax1.set_ylabel('Demand Signal (Orders/Customer)')
 ax1.legend(loc='upper right', fontsize=9)
 ax1.grid(True, alpha=0.3)
 
-# --- Plot B: SES alphas ---
+
 ax2 = fig.add_subplot(gs[1, :])
 ax2.plot(months, series, 'o-', color='#1F3864', lw=2, ms=4, label='Actual Demand Signal')
 ses_colors = ['#ED7D31', '#70AD47', '#7030A0', '#C00000', '#2E75B6']
@@ -322,7 +282,7 @@ ax2.set_ylabel('Demand Signal (Orders/Customer)')
 ax2.legend(loc='upper right', fontsize=9)
 ax2.grid(True, alpha=0.3)
 
-# --- Plot C: Best MA vs Best SES head-to-head ---
+
 ax3 = fig.add_subplot(gs[2, 0])
 ax3.plot(months, series, 'o-', color='#1F3864', lw=2.5, ms=5, label='Actual')
 ax3.plot(months, best_ma_fitted, '-', color='#ED7D31', lw=2, label=f'{best_ma_label}\nRMSE={best_ma_rmse:.4f}')
@@ -341,7 +301,7 @@ ax3.text(0.98, 0.05, f'Winner: {winner.split("(")[0]}',
          fontweight='bold', ha='right',
          bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor=win_color))
 
-# --- Plot D: RMSE Bar Comparison ---
+
 ax4 = fig.add_subplot(gs[2, 1])
 methods  = [f'MA(3)', f'MA(5)', f'MA(7)', 'SES α=0.2', 'SES α=0.4', 'SES α=0.6', 'SES α=0.8', 'SES Auto']
 rmse_vals = [ma3_rmse, ma5_rmse, ma7_rmse] + [ses_results[a]['rmse'] for a in alphas] + [ses_results['opt']['rmse']]
@@ -357,7 +317,7 @@ bars[best_idx].set_edgecolor('#1F3864')
 bars[best_idx].set_linewidth(2.5)
 ax4.grid(True, axis='x', alpha=0.3)
 
-# Legend patch
+
 from matplotlib.patches import Patch
 legend_elements = [Patch(facecolor='#2E75B6', label='Moving Average'),
                    Patch(facecolor='#ED7D31', label='SES')]
@@ -369,9 +329,6 @@ plt.savefig('ma_vs_ses_comparison.png', dpi=150, bbox_inches='tight')
 plt.show()
 print("✅ MA vs SES comparison chart saved.")
 
-# ─────────────────────────────────────────────
-# CELL 10 — Logistic Regression: Churn Prediction
-# ─────────────────────────────────────────────
 
 FEATURES = ['Tenure', 'CityTier', 'WarehouseToHome', 'HourSpendOnApp',
             'NumberOfDeviceRegistered', 'SatisfactionScore', 'NumberOfAddress',
@@ -383,31 +340,31 @@ FEATURES = ['Tenure', 'CityTier', 'WarehouseToHome', 'HourSpendOnApp',
 X = df[FEATURES]
 y = df['Churn']
 
-# Train/test split (stratified to preserve churn ratio)
+
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.25, random_state=42, stratify=y
 )
 
-# Handle class imbalance with SMOTE (production best practice)
+
 smote = SMOTE(random_state=42)
 X_train_bal, y_train_bal = smote.fit_resample(X_train, y_train)
 
 print(f"   Before SMOTE — Churn: {y_train.sum()} | Non-churn: {(y_train==0).sum()}")
 print(f"   After  SMOTE — Churn: {y_train_bal.sum()} | Non-churn: {(y_train_bal==0).sum()}")
 
-# Feature scaling
+
 scaler = StandardScaler()
 X_train_sc = scaler.fit_transform(X_train_bal)
 X_test_sc  = scaler.transform(X_test)
 
-# Logistic Regression
+
 lr_model = LogisticRegression(max_iter=1000, random_state=42, solver='lbfgs')
 lr_model.fit(X_train_sc, y_train_bal)
 
 y_pred      = lr_model.predict(X_test_sc)
 y_pred_prob = lr_model.predict_proba(X_test_sc)[:, 1]
 
-# Metrics
+
 acc    = accuracy_score(y_test, y_pred)
 f1     = f1_score(y_test, y_pred)
 f1_w   = f1_score(y_test, y_pred, average='weighted')
@@ -421,14 +378,12 @@ print(f"   ROC-AUC         : {auc_sc:.4f}")
 print(f"\n   Classification Report:\n")
 print(classification_report(y_test, y_pred, target_names=['Retained', 'Churned']))
 
-# ─────────────────────────────────────────────
-# CELL 11 — Model Evaluation Plots
-# ─────────────────────────────────────────────
+────────────────────────────────────
 
 fig, axes = plt.subplots(1, 3, figsize=(20, 6))
 fig.suptitle('Logistic Regression — Model Evaluation', fontsize=15, fontweight='bold')
 
-# 11.1 Confusion Matrix
+
 cm = confusion_matrix(y_test, y_pred)
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=axes[0],
             xticklabels=['Retained', 'Churned'],
@@ -438,7 +393,7 @@ axes[0].set_title('Confusion Matrix', fontweight='bold')
 axes[0].set_ylabel('Actual')
 axes[0].set_xlabel('Predicted')
 
-# 11.2 ROC Curve
+
 fpr, tpr, _ = roc_curve(y_test, y_pred_prob)
 axes[1].plot(fpr, tpr, color='#2E75B6', lw=2.5,
              label=f'ROC Curve (AUC = {auc_sc:.4f})')
@@ -450,7 +405,7 @@ axes[1].set_ylabel('True Positive Rate')
 axes[1].legend(fontsize=10)
 axes[1].grid(True, alpha=0.3)
 
-# 11.3 Metrics Bar Chart
+
 metric_names = ['Accuracy', 'F1 (Binary)', 'F1 (Weighted)', 'ROC-AUC']
 metric_vals  = [acc, f1, f1_w, auc_sc]
 bars = axes[2].bar(metric_names, metric_vals,
@@ -469,9 +424,7 @@ plt.savefig('logistic_regression_evaluation.png', dpi=150, bbox_inches='tight')
 plt.show()
 print("✅ Model evaluation plots saved.")
 
-# ─────────────────────────────────────────────
-# CELL 12 — Feature Importance (Coefficients)
-# ─────────────────────────────────────────────
+─────────────────────────────────────────
 
 coef_df = pd.DataFrame({
     'Feature':     FEATURES,
@@ -492,15 +445,7 @@ plt.savefig('feature_coefficients.png', dpi=150, bbox_inches='tight')
 plt.show()
 print("✅ Feature importance chart saved.")
 
-# ─────────────────────────────────────────────
-# CELL 13 — Inventory Planning Integration
-#           Churn-Adjusted Demand Forecast
-# ─────────────────────────────────────────────
-# PRODUCTION LOGIC:
-# For each tenure month:
-#   Predicted churn probability (from LR) → estimated active customers
-#   Active customers × avg order count   → inventory demand signal
-#   Apply best forecasting method (MA or SES) to smooth the signal
+
 
 # Get churn probability for the test set, merge with original tenure info
 X_test_orig = X_test.copy()
@@ -548,9 +493,7 @@ display_cols = ['Tenure_raw', 'n_customers', 'avg_churn_prob', 'retention_rate',
                 'safety_stock_SES']
 print(tenure_demand[display_cols].head(10).round(2).to_string(index=False))
 
-# ─────────────────────────────────────────────
-# CELL 14 — Inventory Planning Chart
-# ─────────────────────────────────────────────
+─────────────────────────────────────────
 
 fig, axes = plt.subplots(2, 1, figsize=(16, 12))
 fig.suptitle('Churn-Adjusted Inventory Planning\n(Logistic Regression → Forecasting → Demand Signal)',
@@ -598,53 +541,5 @@ plt.savefig('inventory_planning_output.png', dpi=150, bbox_inches='tight')
 plt.show()
 print("✅ Inventory planning chart saved.")
 
-# ─────────────────────────────────────────────
-# CELL 15 — Final Summary Report
-# ─────────────────────────────────────────────
 
-print("\n" + "="*65)
-print("   INVENTORY PLANNING — PROJECT SUMMARY REPORT")
-print("="*65)
-
-print("\n📦 DATASET")
-print(f"   Total Customers : {len(df_raw):,}")
-print(f"   Churned         : {df_raw['Churn'].sum():,}  ({df_raw['Churn'].mean()*100:.1f}%)")
-print(f"   Retained        : {(df_raw['Churn']==0).sum():,}  ({(1-df_raw['Churn'].mean())*100:.1f}%)")
-
-print("\n📈 FORECASTING RESULTS")
-print(f"   Best Moving Average : MA(window={best_ma_window[1]})  →  RMSE = {best_ma_rmse:.4f}")
-print(f"   Best SES            : α={opt_alpha:.3f} (auto)     →  RMSE = {best_ses_rmse:.4f}")
-if best_ses_rmse < best_ma_rmse:
-    diff = best_ma_rmse - best_ses_rmse
-    print(f"   🏆 WINNER: SES is better by {diff:.4f} RMSE")
-    print(f"   Recommendation: Use SES for inventory demand smoothing in production.")
-else:
-    diff = best_ses_rmse - best_ma_rmse
-    print(f"   🏆 WINNER: Moving Average is better by {diff:.4f} RMSE")
-    print(f"   Recommendation: Use MA(window={best_ma_window[1]}) for inventory smoothing in production.")
-
-print("\n🤖 LOGISTIC REGRESSION — CHURN PREDICTION")
-print(f"   Accuracy          : {acc*100:.2f}%")
-print(f"   F1-Score (Binary) : {f1:.4f}")
-print(f"   F1-Score (Weighted): {f1_w:.4f}")
-print(f"   ROC-AUC           : {auc_sc:.4f}")
-
-print("\n📦 INVENTORY PLANNING (Latest Tenure Month)")
-last = tenure_demand.iloc[-1]
-print(f"   Customers at Risk    : {last['n_customers']:.0f}")
-print(f"   Avg Churn Probability: {last['avg_churn_prob']*100:.1f}%")
-print(f"   Expected Retention   : {last['retention_rate']*100:.1f}%")
-print(f"   Raw Demand Signal    : {last['inventory_demand']:.1f} units")
-print(f"   SES Smoothed Demand  : {last['smoothed_demand_SES']:.1f} units")
-print(f"   Safety Stock (SES)   : {last['safety_stock_SES']:.1f} units (+20% buffer)")
-
-print("\n📁 OUTPUT FILES SAVED:")
-print("   eda_overview.png                — EDA charts")
-print("   correlation_heatmap.png         — Feature correlations")
-print("   ma_vs_ses_comparison.png        — MA vs SES forecasting")
-print("   logistic_regression_evaluation.png — Model metrics")
-print("   feature_coefficients.png        — Feature importance")
-print("   inventory_planning_output.png   — Final inventory plan")
-print("\n" + "="*65)
-print("✅ Project complete. All outputs ready for production review.")
-print("="*65)
+ 
