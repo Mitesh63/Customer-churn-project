@@ -19,7 +19,7 @@ from sklearn.utils import class_weight
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from imblearn.over_sampling import SMOTE
 
-print("✅ All libraries loaded successfully.")
+print(" All libraries loaded successfully.")
 
 
 from google.colab import files
@@ -30,7 +30,7 @@ df_raw = pd.read_excel(io.BytesIO(uploaded[filename]))
 
 
 
-print(f"✅ Dataset loaded: {df_raw.shape[0]} rows × {df_raw.shape[1]} columns")
+print(f" Dataset loaded: {df_raw.shape[0]} rows × {df_raw.shape[1]} columns")
 print(df_raw.head())
 
 
@@ -53,7 +53,7 @@ le = LabelEncoder()
 for col in cat_cols:
     df[col] = le.fit_transform(df[col].astype(str))
 
-print("✅ Preprocessing complete.")
+print("Preprocessing complete.")
 print(f"   Missing values remaining: {df.isnull().sum().sum()}")
 print(f"   Churn rate: {df['Churn'].mean()*100:.1f}%")
 
@@ -132,7 +132,7 @@ axes[1, 2].legend()
 plt.tight_layout()
 plt.savefig('eda_overview.png', dpi=150, bbox_inches='tight')
 plt.show()
-print("✅ EDA plots saved.")
+print(" EDA plots saved.")
 
 ──────────────────
 
@@ -150,7 +150,7 @@ plt.title('Feature Correlation Matrix', fontsize=14, fontweight='bold', pad=15)
 plt.tight_layout()
 plt.savefig('correlation_heatmap.png', dpi=150, bbox_inches='tight')
 plt.show()
-print("✅ Correlation heatmap saved.")
+print(" Correlation heatmap saved.")
 
 
 
@@ -172,7 +172,7 @@ monthly = (df_ts.groupby('Tenure')
 monthly['demand_signal'] = monthly['avg_orders'] * (1 - monthly['churn_rate'])
 monthly['demand_signal'].fillna(monthly['demand_signal'].median(), inplace=True)
 
-print("✅ Monthly time series created.")
+print(" Monthly time series created.")
 print(monthly.head(10).to_string(index=False))
 
 
@@ -198,14 +198,14 @@ ma3_rmse  = rmse(series, window_3)
 ma5_rmse  = rmse(series, window_5)
 ma7_rmse  = rmse(series, window_7)
 
-print(f"\n📊 Moving Average — RMSE Comparison")
+print(f"\n Moving Average — RMSE Comparison")
 print(f"   MA(3):  RMSE = {ma3_rmse:.4f}")
 print(f"   MA(5):  RMSE = {ma5_rmse:.4f}")
 print(f"   MA(7):  RMSE = {ma7_rmse:.4f}")
 
 best_ma_window = min([(ma3_rmse, 3, window_3), (ma5_rmse, 5, window_5),
                       (ma7_rmse, 7, window_7)], key=lambda x: x[0])
-print(f"   ✅ Best MA window: MA({best_ma_window[1]}) with RMSE={best_ma_window[0]:.4f}")
+print(f"    Best MA window: MA({best_ma_window[1]}) with RMSE={best_ma_window[0]:.4f}")
 
 ──────────────────────────────────────────
 
@@ -235,13 +235,13 @@ ses_results['opt'] = {
     'alpha':  opt_alpha
 }
 
-print(f"\n📊 SES — RMSE by Alpha")
+print(f"\n SES — RMSE by Alpha")
 for a, res in ses_results.items():
     label = f"α={a:.2f}" if a != 'opt' else f"α=auto({opt_alpha:.3f})"
     print(f"   SES {label}:  RMSE={res['rmse']:.4f}  MAE={res['mae']:.4f}  MAPE={res['mape']:.2f}%")
 
 best_ses = min(ses_results.items(), key=lambda x: x[1]['rmse'])
-print(f"   ✅ Best SES: alpha={best_ses[0]} with RMSE={best_ses[1]['rmse']:.4f}")
+print(f"    Best SES: alpha={best_ses[0]} with RMSE={best_ses[1]['rmse']:.4f}")
 
 
 best_ses_fitted = best_ses[1]['fitted']
@@ -327,7 +327,7 @@ plt.suptitle('Inventory Demand Forecasting — MA vs SES Analysis',
              fontsize=16, fontweight='bold', y=1.01)
 plt.savefig('ma_vs_ses_comparison.png', dpi=150, bbox_inches='tight')
 plt.show()
-print("✅ MA vs SES comparison chart saved.")
+print(" MA vs SES comparison chart saved.")
 
 
 FEATURES = ['Tenure', 'CityTier', 'WarehouseToHome', 'HourSpendOnApp',
@@ -370,7 +370,7 @@ f1     = f1_score(y_test, y_pred)
 f1_w   = f1_score(y_test, y_pred, average='weighted')
 auc_sc = roc_auc_score(y_test, y_pred_prob)
 
-print(f"\n📊 Logistic Regression — Churn Prediction Results")
+print(f"\n Logistic Regression — Churn Prediction Results")
 print(f"   Accuracy        : {acc*100:.2f}%")
 print(f"   F1-Score (binary)   : {f1:.4f}")
 print(f"   F1-Score (weighted) : {f1_w:.4f}")
@@ -422,7 +422,7 @@ axes[2].grid(True, axis='y', alpha=0.3)
 plt.tight_layout()
 plt.savefig('logistic_regression_evaluation.png', dpi=150, bbox_inches='tight')
 plt.show()
-print("✅ Model evaluation plots saved.")
+print(" Model evaluation plots saved.")
 
 ─────────────────────────────────────────
 
@@ -443,7 +443,7 @@ plt.grid(True, axis='x', alpha=0.3)
 plt.tight_layout()
 plt.savefig('feature_coefficients.png', dpi=150, bbox_inches='tight')
 plt.show()
-print("✅ Feature importance chart saved.")
+print(" Feature importance chart saved.")
 
 
 
@@ -487,7 +487,7 @@ tenure_demand['smoothed_demand_MA'] = (
 tenure_demand['safety_stock_SES'] = tenure_demand['smoothed_demand_SES'] * 1.20
 tenure_demand['safety_stock_MA']  = tenure_demand['smoothed_demand_MA']  * 1.20
 
-print("✅ Inventory Planning Table (first 10 tenure months):")
+print(" Inventory Planning Table (first 10 tenure months):")
 display_cols = ['Tenure_raw', 'n_customers', 'avg_churn_prob', 'retention_rate',
                 'inventory_demand', 'smoothed_demand_SES', 'smoothed_demand_MA',
                 'safety_stock_SES']
@@ -539,7 +539,7 @@ axes[1].grid(True, alpha=0.3)
 plt.tight_layout()
 plt.savefig('inventory_planning_output.png', dpi=150, bbox_inches='tight')
 plt.show()
-print("✅ Inventory planning chart saved.")
+print(" Inventory planning chart saved.")
 
 
  
